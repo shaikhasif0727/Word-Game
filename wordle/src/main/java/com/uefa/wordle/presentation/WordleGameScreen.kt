@@ -1,5 +1,6 @@
 package com.uefa.wordle.presentation
 
+import android.app.GameState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -45,15 +46,6 @@ object WordleGame {
     fun open() {
         WordleGameScreenRoot()
     }
-}
-
-@Composable
-fun WordleGame() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) { }
 }
 
 @Composable
@@ -174,7 +166,13 @@ private fun WordleGameScreen(
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             backgroundColor = Theme.colors.base.interaction,
-                            contentColor = Theme.colors.elevation.elevation02
+                            contentColor = Theme.colors.elevation.elevation02,
+                            disabledBackgroundColor = Theme.colors.base.interaction.copy(
+                                0.55f
+                            ),
+                            disabledContentColor = Theme.colors.elevation.elevation02.copy(
+                                0.55f
+                            )
                         ),
                         onClick = {
                             onAction(WordleGameContract.Event.CheckGuess)
@@ -217,29 +215,24 @@ internal fun GuessBoard(state: WordleGameContract.State) {
         (0 until 5).forEach { rowIndex ->
             Row {
                 (0 until state.targetWord.length).forEach { colIndex ->
-                    val presLetter =
-                        state.guesses.getOrNull(rowIndex)?.getOrNull(colIndex - 1) ?: ' '
-                    val letter = state.guesses.getOrNull(rowIndex)?.getOrNull(colIndex) ?: ' '
-                    val isSelectedBox = letter == ' ' && presLetter != ' '
+                    val letter = getCurrentGridLetter(gameState = state,rowIndex = rowIndex, colIndex = colIndex)
                     Box(
                         modifier = Modifier
                             .width(55.dp)
                             .height(60.dp)
                             .padding(5.dp)
                             .background(
-                                getLetterColor(state, letter),
+                                getLetterColor(state = state, rowIndex = rowIndex, letter = letter),
                                 shape = RoundedCornerShape(14.dp)
                             )
-                            .then(
-                                Modifier.apply {
-                                    if (isSelectedBox)
-                                        border(
-                                            1.dp,
-                                            Theme.colors.base.accent01,
-                                            shape = RoundedCornerShape(14.dp)
-                                        )
-                                }
-                            ),
+                            .border(
+                                1.dp,
+                                if(!shouldHighlightBorder(gameState = state,rowIndex = rowIndex, colIndex = colIndex)) Color.Transparent
+                                else Theme.colors.base.accent01,
+                                shape = RoundedCornerShape(14.dp)
+                            )
+
+                        ,
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -255,15 +248,32 @@ internal fun GuessBoard(state: WordleGameContract.State) {
     }
 }
 
-internal fun getLetterColor(state: WordleGameContract.State, letter: Char): Color {
-    return when (state.keyboardState[letter]) {
+internal fun getCurrentGridLetter(gameState: WordleGameContract.State, rowIndex: Int, colIndex: Int): Char {
+    val isCurrentRow = rowIndex == gameState.guesses.size
+    return if(isCurrentRow)
+        gameState.currentGuess.getOrNull(colIndex) ?:' '
+    else gameState.guesses.getOrNull(rowIndex)?.getOrNull(colIndex) ?: ' '
+}
+
+internal fun shouldHighlightBorder(gameState: WordleGameContract.State, rowIndex: Int, colIndex: Int): Boolean {
+    return rowIndex == gameState.guesses.size && colIndex == gameState.currentGuess.length
+}
+
+internal fun shouldHighlightBackground(gameState: WordleGameContract.State, rowIndex: Int): Boolean {
+    return rowIndex < gameState.guesses.size
+}
+
+internal fun getLetterColor(state: WordleGameContract.State,rowIndex:Int, letter: Char): Color {
+    return if(shouldHighlightBackground(gameState = state,rowIndex = rowIndex)) when (state.keyboardState[letter]) {
         LetterStatus.CORRECT -> Color.Green
         LetterStatus.PRESENT -> Color.Yellow
         LetterStatus.ABSENT -> Theme.colors.elevation.elevation03
         else -> Theme.colors.base.primary02.copy(
             0.75f
         )
-    }
+    } else Theme.colors.base.primary02.copy(
+        0.75f
+    )
 }
 
 internal fun getKeyboardColor(keyboardState: Map<Char, LetterStatus>, letter: Char): Color {
@@ -274,6 +284,9 @@ internal fun getKeyboardColor(keyboardState: Map<Char, LetterStatus>, letter: Ch
     }
 }
 
+fun isCharEmpty(c: Char): Boolean {
+    return c.isWhitespace()
+}
 
 @Composable
 fun GridKeyboard(keyboardState: Map<Char, LetterStatus>,onKeyPress: (Char) -> Unit, onBackspacePress: () -> Unit) {
@@ -307,7 +320,7 @@ fun GridKeyboard(keyboardState: Map<Char, LetterStatus>,onKeyPress: (Char) -> Un
                                 .border(
                                     width = 1.dp,
                                     Color.White.copy(0.25f),
-                                        RoundedCornerShape(14.dp)
+                                    RoundedCornerShape(14.dp)
                                 )
                                 .background(
                                     color = getKeyboardColor(keyboardState = keyboardState,letter),

@@ -32,31 +32,31 @@ class WordleManager @Inject constructor() {
 
     fun addLetter(letter: Char) {
         _currentGuess += letter
-        val newGuesses =
-            if (currentWordleGuessList.isNotEmpty()) currentWordleGuessList.toMutableList().apply {
-                this[lastIndex] = _currentGuess
-            } else listOf<String>(_currentGuess)
+//        val newGuesses =
+//            if (currentWordleGuessList.isNotEmpty()) currentWordleGuessList.toMutableList().apply {
+//                this[lastIndex] = _currentGuess
+//            } else listOf<String>(_currentGuess)
         _wordleGuessListState.value = _wordleGuessListState.value.copy(
-            guessList = newGuesses,
+//            guessList = newGuesses,
             currentGuess = currentGuess
         )
     }
 
     fun removeLetter() {
         val currentGuess = _currentGuess.dropLast(1)
-        val newGuesses =
-            if (currentWordleGuessList.isNotEmpty()) currentWordleGuessList.toMutableList().apply {
-                this[lastIndex] = currentGuess
-            } else listOf<String>(currentGuess)
+//        val newGuesses =
+//            if (currentWordleGuessList.isNotEmpty()) currentWordleGuessList.toMutableList().apply {
+//                this[lastIndex] = currentGuess
+//            } else listOf<String>(currentGuess)
 
         _wordleGuessListState.value = _wordleGuessListState.value.copy(
-            guessList = newGuesses,
+//            guessList = newGuesses,
             currentGuess = currentGuess
         )
     }
 
     fun checkGuess() {
-        val newGuesses = currentWordleGuessList + ""
+        val newGuesses = currentWordleGuessList + currentGuess
         val newKeyboardState = _wordleGuessListState.value.keyboardState.toMutableMap()
 
         currentGuess.forEachIndexed { index, letter ->
